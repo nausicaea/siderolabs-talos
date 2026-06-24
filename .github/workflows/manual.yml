@@ -74,7 +74,7 @@ jobs:
         run: |
           make kernel initramfs installer-base imager installer iso
         env:
-          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:${{ env.TAG }}"
+          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:v1.12.0-alpha.2_shizuoka"
           PLATFORM: linux/amd64
           INSTALLER_ARCH: targetarch
           PUSH: "false"
@@ -93,7 +93,7 @@ jobs:
         run: |
           make kernel initramfs installer-base imager installer iso
         env:
-          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:${{ env.TAG }}"
+          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:v1.12.0-alpha.2_shizuoka"
           PLATFORM: linux/amd64
           INSTALLER_ARCH: targetarch
           PUSH: "true"
