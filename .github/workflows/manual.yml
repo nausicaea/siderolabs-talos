@@ -1,0 +1,131 @@
+on:
+  push:
+    branches:
+      - main
+      - release-*
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - main
+      - release-*
+name: manual
+jobs:
+  manual:
+    permissions:
+      actions: read
+      contents: write
+      issues: read
+      packages: write
+      pull-requests: read
+    runs-on: ubuntu-latest
+    outputs:
+      labels: ${{ steps.retrieve-pr-labels.outputs.result }}
+    steps:
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@90e01b21170618765a73370fcc3abbd1684a7793 # version: v5.0.0
+        with:
+          remove-android: 'true'
+      - name: gather-system-info
+        id: system-info
+        uses: kenchan0130/actions-system-info@59699597e84e80085a750998045983daa49274c4 # version: v1.4.0
+        continue-on-error: true
+      - name: print-system-info
+        run: |
+          MEMORY_GB=$((${{ steps.system-info.outputs.totalmem }}/1024/1024/1024))
+
+          OUTPUTS=(
+            "CPU Core: ${{ steps.system-info.outputs.cpu-core }}"
+            "CPU Model: ${{ steps.system-info.outputs.cpu-model }}"
+            "Hostname: ${{ steps.system-info.outputs.hostname }}"
+            "NodeName: ${NODE_NAME}"
+            "Kernel release: ${{ steps.system-info.outputs.kernel-release }}"
+            "Kernel version: ${{ steps.system-info.outputs.kernel-version }}"
+            "Name: ${{ steps.system-info.outputs.name }}"
+            "Platform: ${{ steps.system-info.outputs.platform }}"
+            "Release: ${{ steps.system-info.outputs.release }}"
+            "Total memory: ${MEMORY_GB} GB"
+            "$(df -h)"
+          )
+
+          for OUTPUT in "${OUTPUTS[@]}";do
+            echo "${OUTPUT}"
+          done
+        continue-on-error: true
+      - name: checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # version: v6.0.2
+      - name: Set up Docker Buildx
+        id: setup-buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
+        with:
+          use: true
+          name: local1
+          driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:v0.26.2
+            network=host
+      - name: Expose GitHub Actions runtime
+        uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # version: v4.0.0
+      - name: Set a Docker-compatible image tag from the Git tag
+        run: |
+          echo "TAG=$(git describe --tag --always --dirty --match 'v[0-9]*' | sed 's/[^a-zA-Z0-9_.-]/_/g')" >> $GITHUB_ENV
+      - name: Build
+        if: github.event_name == 'pull_request'
+        run: |
+          make kernel initramfs installer-base imager installer iso
+        env:
+          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:${{ env.TAG }}"
+          PLATFORM: linux/amd64
+          INSTALLER_ARCH: targetarch
+          PUSH: "false"
+          REGISTRY: ghcr.io
+          USERNAME: "${{ github.repository_owner }}"
+          CI_ARGS: --cache-from=type=gha,scope=manual --cache-to=type=gha,mode=min,scope=manual
+      - name: Login to registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # version: v4.1.0
+        with:
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+      - name: Push to registry
+        if: github.event_name != 'pull_request'
+        run: |
+          make kernel initramfs installer-base imager installer iso
+        env:
+          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:${{ env.TAG }}"
+          PLATFORM: linux/amd64
+          INSTALLER_ARCH: targetarch
+          PUSH: "true"
+          REGISTRY: ghcr.io
+          USERNAME: "${{ github.repository_owner }}"
+          CI_ARGS: --cache-from=type=gha,scope=manual --cache-to=type=gha,mode=min,scope=manual
+      - name: Retrieve PR labels
+        id: retrieve-pr-labels
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # version: v9.0.0
+        with:
+          retries: "3"
+          script: |
+            if (context.eventName != "pull_request") { return "[]" }
+
+            const resp = await github.rest.issues.get({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+            })
+
+            return resp.data.labels.map(label => label.name)
+      - name: check-dirty
+        if: github.event_name == 'pull_request'
+        run: |
+          make check-dirty
+      - name: release-notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          make release-notes
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # version: v3.0.0
+        with:
+          body_path: _out/RELEASE_NOTES.md
+          draft: "true"
