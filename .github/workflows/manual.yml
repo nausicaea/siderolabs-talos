@@ -52,10 +52,6 @@ jobs:
         uses: imjasonh/setup-crane@59c71e96a00b28651f10369ba3359a6d730740a0 # version: v0.6
         with:
           version: v0.21.7
-      - name: Install grub-common
-        run: |
-          sudo apt update
-          sudo apt install -y grub-common
       - name: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # version: v6.0.2
       - name: Set up Docker Buildx
