@@ -22,10 +22,6 @@ jobs:
     outputs:
       labels: ${{ steps.retrieve-pr-labels.outputs.result }}
     steps:
-      - name: Maximize build space
-        uses: AdityaGarg8/remove-unwanted-software@90e01b21170618765a73370fcc3abbd1684a7793 # version: v5.0.0
-        with:
-          remove-android: 'true'
       - name: gather-system-info
         id: system-info
         uses: kenchan0130/actions-system-info@59699597e84e80085a750998045983daa49274c4 # version: v1.4.0
