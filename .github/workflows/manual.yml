@@ -81,9 +81,9 @@ jobs:
       - name: external-artifacts
         run: |
           make external-artifacts
-      - name: generate
-        run: |
-          make generate docs
+     #  - name: generate
+     #    run: |
+     #      make generate docs
       - name: uki-certs
         env:
           PLATFORM: linux/amd64
