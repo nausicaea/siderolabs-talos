@@ -64,23 +64,6 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.26.2
             network=host
-      - name: Expose GitHub Actions runtime
-        uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # version: v4.0.0
-      - name: Set a Docker-compatible image tag from the Git tag
-        run: |
-          echo "TAG=$(git describe --tag --always --dirty --match 'v[0-9]*' | sed 's/[^a-zA-Z0-9_.-]/_/g')" >> $GITHUB_ENV
-      - name: Build
-        if: github.event_name == 'pull_request'
-        run: |
-          make kernel initramfs installer-base imager installer iso
-        env:
-          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:v1.12.0-alpha.2_shizuoka"
-          PLATFORM: linux/amd64
-          INSTALLER_ARCH: targetarch
-          PUSH: "false"
-          REGISTRY: ghcr.io
-          USERNAME: "${{ github.repository_owner }}"
-          CI_ARGS: --cache-from=type=gha,scope=manual --cache-to=type=gha,mode=min,scope=manual
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # version: v4.1.0
@@ -88,18 +71,63 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-      - name: Push to registry
-        if: github.event_name != 'pull_request'
+      - name: Expose GitHub Actions runtime
+        uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # version: v4.0.0
+      - name: Set a Docker-compatible image tag from the Git tag
         run: |
-          make kernel initramfs installer-base imager installer iso
+          echo "TAG=$(git describe --tag --always --dirty --match 'v[0-9]*' | sed 's/[^a-zA-Z0-9_.-]/_/g')" >> $GITHUB_ENV
+      - name: ci-temp-release-tag
+        run: |
+          make ci-temp-release-tag
+      - name: external-artifacts
+        run: |
+          make external-artifacts
+      - name: generate
+        run: |
+          make generate docs
+      - name: uki-certs
         env:
-          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:v1.12.0-alpha.2_shizuoka"
+          PLATFORM: linux/amd64
+        run: |
+          make uki-certs
+      - name: check-dirty
+        run: |
+          make check-dirty
+      - name: build
+        env:
+          CI_ARGS: --cache-from=type=gha,scope=manual --cache-to=type=gha,mode=min,scope=manual
           PLATFORM: linux/amd64
           INSTALLER_ARCH: targetarch
+          PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:v1.12.0-alpha.2_shizuoka"
           PUSH: "true"
-          REGISTRY: ghcr.io
           USERNAME: "${{ github.repository_owner }}"
+        run: |
+          make talosctl-linux-amd64 kernel sd-boot sd-stub initramfs installer-base imager talos _out/integration-test-linux-amd64
+      - name: talosctl-cni-bundle
+        run: |
+          make talosctl-cni-bundle
+      - name: sbom
+        run: |
+          make sbom
+      - name: iso
+        env:
           CI_ARGS: --cache-from=type=gha,scope=manual --cache-to=type=gha,mode=min,scope=manual
+          PLATFORM: linux/amd64
+          INSTALLER_ARCH: targetarch
+          IMAGER_ARGS: --extra-kernel-arg=console=ttyS0
+          USERNAME: "${{ github.repository_owner }}"
+        run: |
+          make iso
+      - name: Generate executable list
+        run: |
+          find _out -type f -executable > _out/executable-artifacts
+      - name: save artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # version: v7.0.0
+        with:
+          name: talos-artifacts
+          path: |
+            _out
+          retention-days: "5"
       - name: Retrieve PR labels
         id: retrieve-pr-labels
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # version: v9.0.0
@@ -115,17 +143,3 @@ jobs:
             })
 
             return resp.data.labels.map(label => label.name)
-      - name: check-dirty
-        if: github.event_name == 'pull_request'
-        run: |
-          make check-dirty
-      - name: release-notes
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          make release-notes
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # version: v3.0.0
-        with:
-          body_path: _out/RELEASE_NOTES.md
-          draft: "true"
