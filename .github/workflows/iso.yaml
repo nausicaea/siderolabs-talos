@@ -19,7 +19,8 @@ on:
 env:
   PLATFORM: linux/amd64
   INSTALLER_ARCH: targetarch
-  PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:f5baffd"
+  PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:26a1370"
+  PKGS: "v1.12.0-95-g22cfe5b"
   REGISTRY: ghcr.io
   USERNAME: "${{ github.repository_owner }}"
   CI_ARGS: --cache-from=type=gha,scope=iso --cache-to=type=gha,mode=min,scope=iso
