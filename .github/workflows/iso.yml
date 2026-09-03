@@ -48,6 +48,8 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.26.2
             network=host
+      - name: Install crane
+        uses: imjasonh/setup-crane@feee3b6bb0d4c68370f256a4502498c9227e5c6b # version: v0.7
       - name: Build
         env:
           PUSH: "false"
