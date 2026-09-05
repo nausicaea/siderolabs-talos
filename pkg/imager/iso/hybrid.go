@@ -25,6 +25,7 @@ func (options Options) CreateHybrid(printf func(string, ...any)) (Generator, err
 			"--compress=xz",
 			"--output=" + options.OutPath,
 			"--verbose",
+			"--font=",
 			"--directory=/usr/lib/grub/i386-pc", // only for BIOS boot
 			"-m", "efiboot.img",                 // exclude the EFI boot image from the ISO
 			"-iso-level", "3",
