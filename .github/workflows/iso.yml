@@ -54,7 +54,7 @@ jobs:
         env:
           PUSH: "false"
         run: |
-          make initramfs kernel installer-base imager
+          make initramfs kernel installer-base imager installer iso
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # version: v4.1.0
