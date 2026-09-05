@@ -68,5 +68,12 @@ jobs:
           PUSH: "true"
         run: |
           make initramfs kernel installer-base imager installer iso
+      - name: Save artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # version: v7.0.1
+        with:
+          name: talos-artifacts
+          path: |
+            _out
+          retention-days: "5"
 
 
