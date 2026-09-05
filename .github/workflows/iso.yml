@@ -3,25 +3,19 @@ on:
   push:
     branches:
       - main
-      - shizuoka
-      - osaka
-      - kagawa
       - release-*
     tags:
       - v*
   pull_request:
     branches:
       - main
-      - shizuoka
-      - osaka
-      - kagawa
       - release-*
 env:
   PLATFORM: linux/amd64
   INSTALLER_ARCH: targetarch
   PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:aebc808"
   PKGS: "v1.12.0-103-gf921142"
-  REGISTRY: ghcr.io
+  REGISTRY: ${{ github.event_name == 'pull_request' && 'localhost:5000' || 'ghcr.io' }}
   USERNAME: "${{ github.repository_owner }}"
   CI_ARGS: --cache-from=type=gha,scope=iso --cache-to=type=gha,mode=min,scope=iso
 jobs:
@@ -38,6 +32,15 @@ jobs:
         run: |
           echo "TAG=$(git describe --tag --always --dirty --match 'v[0-9]*' | sed 's/[^a-zA-Z0-9_.-]/_/g')" >> "$GITHUB_ENV"
           echo "ABBREV_TAG=$(echo $(git describe --tags >/dev/null 2>/dev/null && git describe --tag --always --match v[0-9]\* --abbrev=0 || echo 'undefined') | sed 's/[^a-zA-Z0-9_.-]/_/g')" >> "$GITHUB_ENV"
+      - name: Start local registry
+        if: github.event_name == 'pull_request'
+        run: |
+          docker run -d --restart=always -p 5000:5000 --name registry \
+            docker.io/library/registry:3.1.1@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5000/v2/ && break
+            sleep 1
+          done
       - name: Set up Docker Buildx
         id: setup-buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # version: v4.0.0
@@ -48,13 +51,14 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.26.2
             network=host
+          # Only matters when REGISTRY resolves to localhost:5000 (PR builds);
+          # harmless no-op otherwise since ghcr.io is never matched here.
+          buildkitd-config-inline: |
+            [registry."localhost:5000"]
+              http = true
+              insecure = true
       - name: Install crane
         uses: imjasonh/setup-crane@feee3b6bb0d4c68370f256a4502498c9227e5c6b # version: v0.7
-      - name: Build
-        env:
-          PUSH: "false"
-        run: |
-          make initramfs kernel installer-base imager
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # version: v4.1.0
@@ -62,11 +66,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ${{ env.REGISTRY }}
           username: ${{ env.USERNAME }}
-      - name: Build and push to registry
-        if: github.event_name != 'pull_request'
+      - name: Build and push
         env:
           PUSH: "true"
         run: |
           make initramfs kernel installer-base imager installer iso
-
-
+      - name: Save artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # version: v7.0.1
+        with:
+          name: talos-artifacts
+          path: |
+            _out
+          retention-days: "5"
