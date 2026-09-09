@@ -13,7 +13,7 @@ on:
 env:
   PLATFORM: linux/amd64
   INSTALLER_ARCH: targetarch
-  PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:aebc808"
+  #PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:aebc808"
   PKGS: "v1.12.0-103-gf921142"
   REGISTRY: 'ghcr.io' # ${{ github.event_name == 'pull_request' && 'localhost:5000' || 'ghcr.io' }}
   USERNAME: "${{ github.repository_owner }}"
