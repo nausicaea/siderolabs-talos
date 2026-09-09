@@ -77,7 +77,7 @@ func (options Options) CreateGRUB(printf func(string, ...any)) (Generator, error
 			"--compress=xz",
 			"--output=" + options.OutPath,
 			"--verbose",
-			"--fonts=",
+			"--fonts=ascii",
 			options.ScratchDir,
 			"-iso-level", "3",
 			"--",
