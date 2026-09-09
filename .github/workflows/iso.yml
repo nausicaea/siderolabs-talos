@@ -63,16 +63,33 @@ jobs:
         env:
           PUSH: "true"
         run: make imager
-      - name: Build installer
-        env:
-          PUSH: "true"
-          INSTALLER_ARCH: targetarch
-        run: make installer
       - name: Build ISO
         env:
-          PUSH: "true"
-          INSTALLER_ARCH: targetarch
-        run: make iso
+          BOOTLOADER: sd-boot
+        run: |
+          cat <<EOF | docker run --rm -i -v "$(pwd)/_out:/out" "$REGISTRY/$USERNAME/imager:$TAG" -
+          arch: $ARCH
+          platform: metal
+          secureboot: false
+          version: $TAG
+          input:
+            kernel:
+              path: /usr/install/$ARCH/vmlinuz
+            initramfs:
+              path: /usr/install/$ARCH/initramfs.xz
+            sdStub:
+              path: /usr/install/$ARCH/systemd-stub.efi
+            sdBoot:
+              path: /usr/install/$ARCH/systemd-boot.efi
+            baseInstaller:
+              imageRef: $REGISTRY/$USERNAME/installer-base:$TAG
+          output:
+            kind: iso
+            isoOptions:
+              sdBootEnrollKeys: if-safe
+              bootloader: $BOOTLOADER
+            outFormat: raw
+          EOF
       - name: Save artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # version: v7.0.1
         with:
