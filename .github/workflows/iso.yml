@@ -62,6 +62,7 @@ jobs:
       - name: Build imager
         env:
           PUSH: "true"
+          INSTALLER_ARCH: targetarch
         run: make imager
       - name: Build ISO
         env:
