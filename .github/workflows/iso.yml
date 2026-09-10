@@ -3,27 +3,19 @@ on:
   push:
     branches:
       - main
-      - shizuoka
-      - osaka
-      - kagawa
       - release-*
     tags:
       - v*
   pull_request:
     branches:
       - main
-      - shizuoka
-      - osaka
-      - kagawa
       - release-*
 env:
-  PLATFORM: linux/amd64
-  INSTALLER_ARCH: targetarch
+  ARCH: amd64
   PKG_KERNEL: "ghcr.io/${{ github.repository_owner }}/kernel:aebc808"
   PKGS: "v1.12.0-103-gf921142"
   REGISTRY: ghcr.io
   USERNAME: "${{ github.repository_owner }}"
-  CI_ARGS: --cache-from=type=gha,scope=iso --cache-to=type=gha,mode=min,scope=iso
 jobs:
   iso:
     runs-on: ubuntu-latest
@@ -45,16 +37,13 @@ jobs:
           use: true
           name: talos_local1
           driver: docker-container
-          driver-opts: |
-            image=moby/buildkit:v0.26.2
-            network=host
+          # driver-opts: |
+          #   image=moby/buildkit:v0.26.2
+          #   network=host
       - name: Install crane
         uses: imjasonh/setup-crane@feee3b6bb0d4c68370f256a4502498c9227e5c6b # version: v0.7
-      - name: Build
-        env:
-          PUSH: "false"
-        run: |
-          make initramfs kernel installer-base imager
+        with:
+          version: v0.21.6
       - name: Login to registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # version: v4.1.0
@@ -62,11 +51,50 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ${{ env.REGISTRY }}
           username: ${{ env.USERNAME }}
-      - name: Build and push to registry
-        if: github.event_name != 'pull_request'
+      - name: Build initramfs
+        run: make initramfs
+      - name: Build kernel
+        run: make kernel
+      - name: Build installer-base
         env:
           PUSH: "true"
+        run: make installer-base
+      - name: Build imager
+        env:
+          PUSH: "true"
+          INSTALLER_ARCH: targetarch
+        run: make imager
+      - name: Build ISO
+        env:
+          BOOTLOADER: sd-boot
         run: |
-          make initramfs kernel installer-base imager installer iso
-
-
+          cat <<EOF | docker run --rm -i -v "$(pwd)/_out:/out" "$REGISTRY/$USERNAME/imager:$TAG" -
+          arch: $ARCH
+          platform: metal
+          secureboot: false
+          version: $TAG
+          input:
+            kernel:
+              path: /usr/install/$ARCH/vmlinuz
+            initramfs:
+              path: /usr/install/$ARCH/initramfs.xz
+            sdStub:
+              path: /usr/install/$ARCH/systemd-stub.efi
+            sdBoot:
+              path: /usr/install/$ARCH/systemd-boot.efi
+            baseInstaller:
+              imageRef: $REGISTRY/$USERNAME/installer-base:$TAG
+          output:
+            kind: iso
+            isoOptions:
+              sdBootEnrollKeys: if-safe
+              bootloader: $BOOTLOADER
+            outFormat: raw
+          EOF
+      - name: Save artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # version: v7.0.1
+        with:
+          name: talos-artifacts
+          path: |
+            _out
+          retention-days: "5"
