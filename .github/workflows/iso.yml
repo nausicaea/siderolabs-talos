@@ -85,7 +85,7 @@ jobs:
             baseInstaller:
               imageRef: $REGISTRY/$USERNAME/installer-base:$TAG
             systemExtensions:
-              - imageRef: ghcr.io/nausicaea/t2fanrd:v0.4.6@sha256:88b14e062210561865a10e12f56336023325053e8fdd2aefbd504a4b2bb1e346
+              - imageRef: ghcr.io/nausicaea/t2fanrd:v0.4.7@sha256:475bcdb1a4a2999fa9508a3d3ef3ad4889403351163d78bdf904972b1d13a6f8
           output:
             kind: iso
             isoOptions:
