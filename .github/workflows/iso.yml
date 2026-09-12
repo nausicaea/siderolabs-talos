@@ -66,7 +66,7 @@ jobs:
         run: make imager
       - name: Build ISO
         env:
-          BOOTLOADER: sd-boot
+          BOOTLOADER: dual-boot
         run: |
           cat <<EOF | docker run --rm -i -v "$(pwd)/_out:/out" "$REGISTRY/$USERNAME/imager:$TAG" -
           arch: $ARCH
