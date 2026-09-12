@@ -84,6 +84,8 @@ jobs:
               path: /usr/install/$ARCH/systemd-boot.efi
             baseInstaller:
               imageRef: $REGISTRY/$USERNAME/installer-base:$TAG
+            systemExtensions:
+              - imageRef: ghcr.io/nausicaea/t2fanrd:v0.4.6@sha256:88b14e062210561865a10e12f56336023325053e8fdd2aefbd504a4b2bb1e346
           output:
             kind: iso
             isoOptions:
