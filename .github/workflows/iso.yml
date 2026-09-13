@@ -25,7 +25,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # version: v6.0.2
         with:
-          fetch-depth: 10
+          fetch-depth: 256
           fetch-tags: true
       - name: Expose GitHub Actions runtime
         uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # version: v4.0.0
