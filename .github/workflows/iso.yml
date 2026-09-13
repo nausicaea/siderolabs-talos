@@ -65,8 +65,6 @@ jobs:
           INSTALLER_ARCH: targetarch
         run: make imager
       - name: Build ISO
-        env:
-          BOOTLOADER: sd-boot
         run: |
           docker run --rm -v "$(pwd)/_out:/out" "$REGISTRY/$USERNAME/imager:$TAG" \
             iso "--arch=$ARCH" --platform=metal \
