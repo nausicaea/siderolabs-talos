@@ -72,7 +72,7 @@ jobs:
           docker run --rm -v "$(pwd)/_out:/out" "$REGISTRY/$USERNAME/imager:$TAG" \
             iso "--arch=$ARCH" --platform=metal \
             "--base-installer-image=$REGISTRY/$USERNAME/installer-base:$TAG" \
-            --system-extension-image=ghcr.io/nausicaea/t2fanrd:v0.4.8observ@sha256:4d5a4d8d781d1e5e8d56f0de62f819ef35fb1e8ea4833afed88912408426e664
+            --system-extension-image=ghcr.io/nausicaea/t2fanrd:v0.4.9@sha256:e29eea7ca3b8dce8045135dd5793cad4415d7ff4a972c3fd379a8f16174ba39f
       - name: Save artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # version: v7.0.1
         with:
