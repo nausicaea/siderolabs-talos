@@ -64,6 +64,11 @@ jobs:
           PUSH: "true"
           INSTALLER_ARCH: targetarch
         run: make imager
+      - name: Build installer
+        env:
+          PUSH: "true"
+          INSTALLER_ARCH: targetarch
+        run: make installer
       - name: Build ISO
         run: |
           docker run --rm -v "$(pwd)/_out:/out" "$REGISTRY/$USERNAME/imager:$TAG" \
